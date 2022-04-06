@@ -130,7 +130,7 @@ Iterative Training: No
 
 
 
-### FocalClick: Towards Practical Interactive Image Segmentation (In Submission)
+### FocalClick: Towards Practical Interactive Image Segmentation (CVPR2022)
 ```
 CONFIG
 S1 version: coarse segmentator input size 128x128; refiner input size 256x256.  
