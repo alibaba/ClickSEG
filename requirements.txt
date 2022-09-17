@@ -1,7 +1,7 @@
 matplotlib==3.3.4
 easydict==1.9
 opencv_contrib_python==4.2.0.32
-torchvision==0.9.0a0+01dfa8e
+torchvision==0.9.0
 mmcv_full==1.2.7
 numpy==1.17.0
 torch==1.8.0
@@ -18,5 +18,4 @@ ipython==7.30.1
 mmcv==1.4.1
 Pillow==8.4.0
 PyYAML==6.0
-skimage==0.0
 thop==0.0.31-2005241907
