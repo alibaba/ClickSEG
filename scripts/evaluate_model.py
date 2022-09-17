@@ -85,7 +85,7 @@ def parse_args():
         args.target_iou = max(0.8, args.target_iou)
 
     cfg = load_config_file(args.config_path, return_edict=True)
-    cfg.EXPS_PATH = Path(os.getcwd().rsplit("ClickSeg", 1)[0]) / "ClickSeg/experiments"
+    cfg.EXPS_PATH = Path(os.getcwd().rsplit("ClickSEG", 1)[0]) / "ClickSEG/experiments"
 
     if args.logs_path == '':
         args.logs_path = cfg.EXPS_PATH / 'evaluation_logs'

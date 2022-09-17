@@ -48,7 +48,7 @@ def parse_args():
     args = parser.parse_args()
 
     cfg = load_config_file(args.config_path, return_edict=True)
-    cfg.EXPS_PATH = Path(os.getcwd().rsplit("ClickSeg", 1)[0]) / "ClickSeg/experiments"
+    cfg.EXPS_PATH = Path(os.getcwd().rsplit("ClickSEG", 1)[0]) / "ClickSEG/experiments"
 
     args.datasets = args.datasets.split(',')
     if args.plots_path == '':
