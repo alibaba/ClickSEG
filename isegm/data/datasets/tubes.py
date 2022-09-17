@@ -11,7 +11,7 @@ from isegm.data.sample import DSample
 
 
 class TubesDataset(ISDataset):
-    def __init__(self, dataset_path="/home/bean/lab/SegFormer/data/all", split="train", **kwargs):
+    def __init__(self, dataset_path="", split="train", **kwargs):
         super(TubesDataset, self).__init__(**kwargs)
         self.dataset_path = Path(dataset_path)
         self._data_path = self.dataset_path / split

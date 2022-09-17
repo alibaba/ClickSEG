@@ -59,7 +59,7 @@ class SegFormerModel(ISModel):
     def backbone_forward(self, image, side_feature):
         mask, feature = self.feature_extractor(image, side_feature)
         return {'instances': mask, 'instances_aux':mask, 'feature': feature}
-        
+
 
     def refine(self, cropped_image, cropped_points, full_feature, full_logits, bboxes):
         '''
@@ -117,7 +117,7 @@ class RefineLayer(nn.Module):
             )
         self.image_conv2 = XConvBnRelu(feature_dims,feature_dims)
         self.image_conv3 = XConvBnRelu(feature_dims,feature_dims)
-        
+
 
         self.refine_fusion = ConvModule(
             in_channels= feature_indim,
@@ -127,7 +127,7 @@ class RefineLayer(nn.Module):
             padding=0,
             #norm_cfg=dict(type='BN', requires_grad=True),
             )
-        
+
         self.refine_fusion2 = XConvBnRelu(feature_dims,feature_dims)
         self.refine_fusion3 = XConvBnRelu(feature_dims,feature_dims)
         self.feature_gate = nn.Sequential(
@@ -136,7 +136,7 @@ class RefineLayer(nn.Module):
         )
         self.refine_pred = nn.Conv2d(feature_dims, num_classes,3,1,1)
         self.refine_trimap = nn.Conv2d(feature_dims, num_classes,3,1,1)
-    
+
 
     def forward(self, input_image, click_map, final_feature, cropped_logits):
 
@@ -174,7 +174,7 @@ class ConvModule(nn.Module):
         self.conv = nn.Conv2d(in_channels,out_channels,kernel_size,stride,padding)
         self.norm = nn.BatchNorm2d(out_channels)
         self.activation = nn.ReLU()
-       
+
 
     def forward(self, x):
         return self.activation( self.norm( self.conv(x)  ) )

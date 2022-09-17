@@ -116,13 +116,14 @@ class ISDataset(torch.utils.data.dataset.Dataset):
                         return output
                     else:
                         index = np.random.randint(len(self.dataset_samples)-1)
-            except:
+            except Exception as e:
+                print(e)
                 index = np.random.randint(len(self.dataset_samples)-1)
 
 
     def remove_small_regions(self,mask):
         mask = mask[0] > 0.5
-        mask = skimage.morphology.remove_small_objects(mask,min_size= 900)
+        mask = skimage.morphology.remove_small_objects(mask,min_size=150)
         mask = np.expand_dims(mask,0).astype(np.float32)
         return mask
 

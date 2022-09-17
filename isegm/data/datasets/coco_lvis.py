@@ -7,7 +7,7 @@ import cv2
 from copy import deepcopy
 from isegm.data.base import ISDataset
 from isegm.data.sample import DSample
- 
+
 
 class CocoLvisDataset(ISDataset):
     def __init__(self, dataset_path, split='train',img_split='train2017',stuff_prob=0.0,

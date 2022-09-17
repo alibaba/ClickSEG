@@ -62,7 +62,7 @@ def train(model, cfg, model_cfg):
 
 
     trainset = TubesDataset(
-        "/home/bean/lab/SegFormer/data/all",
+        dataset_path=cfg.dataset_path,
         split='train',
         augmentator=train_augmentator,
         min_object_area=150,
@@ -72,7 +72,7 @@ def train(model, cfg, model_cfg):
     )
 
     valset = TubesDataset(
-        "/home/bean/lab/SegFormer/data/all",
+        cfg.dataset_path,
         split='val',
         augmentator=val_augmentator,
         min_object_area=150,

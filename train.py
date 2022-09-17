@@ -30,6 +30,9 @@ def parse_args():
     parser.add_argument('model_path', type=str,
                         help='Path to the model script.')
 
+    parser.add_argument('dataset_path', type=str,
+                        help='Path to the dataset.')
+
     parser.add_argument('--exp-name', type=str, default='',
                         help='Here you can specify the name of the experiment. '
                              'It will be added as a suffix to the experiment folder.')

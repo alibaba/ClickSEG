@@ -41,7 +41,7 @@ class DSample:
         self._augmented = False
         self._soft_mask_aug = None
         self._original_data = self.image, self._encoded_masks, deepcopy(self._objects)
-    
+
 
     def augment(self, augmentator):
         self.reset_augmentation()
@@ -52,7 +52,7 @@ class DSample:
         self._compute_objects_areas()
         self.remove_small_objects(min_area=1)
         self._augmented = True
-    
+
 
     def reset_augmentation(self):
         if not self._augmented:

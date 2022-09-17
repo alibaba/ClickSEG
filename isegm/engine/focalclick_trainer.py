@@ -134,17 +134,18 @@ class ISTrainer(object):
             self.train_data.sampler.set_epoch(epoch)
 
         log_prefix = 'Train' + self.task_prefix.capitalize()
-        tbar = tqdm(self.train_data, file=self.tqdm_out, ncols=100)\
-            if self.is_master else self.train_data
+        if self.is_master:
+            tbar = tqdm(self.train_data, file=self.tqdm_out, ncols=100)
+        else:
+            tbar = self.train_data
 
         for metric in self.train_metrics:
             metric.reset_epoch_stats()
 
         self.net.train()
-        #for m in self.net.feature_extractor.modules():
-        #        m.eval()
 
         train_loss = 0.0
+
         for i, batch_data in enumerate(tbar):
             global_step = epoch * len(self.train_data) + i
             use_fp16 = False
@@ -214,7 +215,10 @@ class ISTrainer(object):
                                        flush_secs=10, dump_period=self.tb_dump_period)
 
         log_prefix = 'Val' + self.task_prefix.capitalize()
-        tbar = tqdm(self.val_data, file=self.tqdm_out, ncols=100) if self.is_master else self.val_data
+        if self.is_master:
+            tbar = tqdm(self.val_data, file=self.tqdm_out, ncols=100)
+        else:
+            tbar = self.val_data
 
         for metric in self.val_metrics:
             metric.reset_epoch_stats()
@@ -223,6 +227,7 @@ class ISTrainer(object):
         losses_logging = defaultdict(list)
 
         self.net.eval()
+
         for i, batch_data in enumerate(tbar):
             global_step = epoch * len(self.val_data) + i
             loss, batch_losses_logging, splitted_batch_data, outputs = \
@@ -239,6 +244,7 @@ class ISTrainer(object):
                 tbar.set_description(f'Epoch {epoch}, validation loss: {val_loss/(i + 1):.4f}')
                 for metric in self.val_metrics:
                     metric.log_states(self.sw, f'{log_prefix}Metrics/{metric.name}', global_step)
+            i += 1
 
         if self.is_master:
             for loss_name, loss_values in losses_logging.items():
@@ -304,7 +310,6 @@ class ISTrainer(object):
             images_focus, points_focus, rois  = batch_data['images_focus'], batch_data['points_focus'], batch_data['rois']
             full_feature, full_logits = output['feature'], output['instances']
             bboxes = torch.chunk(rois,rois.shape[0],dim=0)
-            #print( len(bboxes), bboxes[0].shape, rois.shape  )
             refine_output = self.net.refine(images_focus, points_focus, full_feature, full_logits, bboxes)
 
             loss = 0.0
