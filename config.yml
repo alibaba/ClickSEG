@@ -1,4 +1,4 @@
 EXPS_PATH: "./experiments"
 
-PRETRAINED_MODELS:
+IMAGENET_PRETRAINED_MODELS:
   SEGFORMER_B0: "./pretrained/segformer_b0/last_checkpoint.pth"
