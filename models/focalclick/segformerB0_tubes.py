@@ -60,6 +60,7 @@ def train(model, cfg, model_cfg):
                                        use_hierarchy=False,
                                        first_click_center=True)
 
+    print(f"cfg.dataset_path: {cfg.dataset_path}")
 
     trainset = TubesDataset(
         dataset_path=cfg.dataset_path,
