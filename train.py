@@ -33,6 +33,9 @@ def parse_args():
     parser.add_argument('--dataset_path', type=str, default='',
                         help='Path to the dataset.')
 
+    parser.add_argument('--pretrained_weights', type=str, default='',
+                        help='Path to the pretrained weights checkpoint (.pth file).')
+
     parser.add_argument('--exp-name', type=str, default='',
                         help='Here you can specify the name of the experiment. '
                              'It will be added as a suffix to the experiment folder.')

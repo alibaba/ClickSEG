@@ -1,4 +1,5 @@
 import sys
+import os
 import pickle
 import argparse
 from pathlib import Path
@@ -24,21 +25,11 @@ def parse_args():
 
     group_checkpoints = parser.add_mutually_exclusive_group(required=True)
     group_checkpoints.add_argument('--checkpoint', type=str, default='',
-                                   help='The path to the checkpoint. '
-                                        'This can be a relative path (relative to cfg.INTERACTIVE_MODELS_PATH) '
-                                        'or an absolute path. The file extension can be omitted.')
-
-    parser.add_argument('--model_dir', type=str, default='',
-                                   help='The path to the checkpoint.')
+                                   help='Absolute path to the checkpoint. The file extension can be omitted.')
 
     group_checkpoints.add_argument('--exp-path', type=str, default='',
-                                   help='The relative path to the experiment with checkpoints.'
-                                        '(relative to cfg.EXPS_PATH)')
-
-    parser.add_argument('--datasets', type=str, default='GrabCut,Berkeley,DAVIS,SBD,PascalVOC',
-                        help='List of datasets on which the model should be tested. '
-                             'Datasets are separated by a comma. Possible choices: '
-                             'GrabCut, Berkeley, DAVIS, SBD, PascalVOC')
+                                   help='The relative path to the experiment with '
+                                        'checkpoints (relative experiments/).')
 
     group_device = parser.add_mutually_exclusive_group()
     group_device.add_argument('--gpus', type=str, default='0',
@@ -72,7 +63,7 @@ def parse_args():
     parser.add_argument('--config-path', type=str, default='./config.yml',
                         help='The path to the config file.')
     parser.add_argument('--logs-path', type=str, default='',
-                        help='The path to the evaluation logs. Default path: cfg.EXPS_PATH/evaluation_logs.')
+                        help='The path to the evaluation logs. Default path: experiments/evaluation_logs.')
     parser.add_argument('--infer-size', type=int, default=384,
                         help='Inference input size for the model')
 
@@ -94,7 +85,7 @@ def parse_args():
         args.target_iou = max(0.8, args.target_iou)
 
     cfg = load_config_file(args.config_path, return_edict=True)
-    cfg.EXPS_PATH = Path(cfg.EXPS_PATH)
+    cfg.EXPS_PATH = Path(os.getcwd().rsplit("ClickSeg", 1)[0]) / "ClickSeg/experiments"
 
     if args.logs_path == '':
         args.logs_path = cfg.EXPS_PATH / 'evaluation_logs'

@@ -1,4 +1,5 @@
 import sys
+import os
 import pickle
 import argparse
 from pathlib import Path
@@ -25,7 +26,7 @@ def parse_args():
                                 help="List of paths to model directories with 'plots' folder "
                                      "containing .pickle files separated by space.")
     group_pkl_path.add_argument('--exp-models', nargs='+', default=None,
-                                help='List of experiments paths suffixes (relative to cfg.EXPS_PATH/evaluation_logs). '
+                                help='List of experiments paths suffixes (relative to experiments/evaluation_logs). '
                                      'For each experiment, the checkpoint prefix must be specified '
                                      'by using the ":" delimiter at the end.')
 
@@ -42,12 +43,12 @@ def parse_args():
                         help='Maximum number of clicks to plot.')
     parser.add_argument('--plots-path', type=str, default='',
                         help='The path to the evaluation logs. '
-                             'Default path: cfg.EXPS_PATH/evaluation_logs/iou_analysis.')
+                             'Default path: experiments/evaluation_logs/iou_analysis.')
 
     args = parser.parse_args()
 
     cfg = load_config_file(args.config_path, return_edict=True)
-    cfg.EXPS_PATH = Path(cfg.EXPS_PATH)
+    cfg.EXPS_PATH = Path(os.getcwd().rsplit("ClickSeg", 1)[0]) / "ClickSeg/experiments"
 
     args.datasets = args.datasets.split(',')
     if args.plots_path == '':
