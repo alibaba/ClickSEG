@@ -14,7 +14,7 @@ def main(cfg):
 def init_model(cfg):
     model_cfg = edict()
     model_cfg.crop_size = (256, 256)
-    model_cfg.num_max_points = 96
+    model_cfg.num_max_points = 24
 
     model = SegFormerModel( pipeline_version = 's2', model_version = 'b0',
                        use_leaky_relu=True, use_rgb_conv=False, use_disks=True, norm_radius=5, binary_prev_mask=False,
