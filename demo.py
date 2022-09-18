@@ -40,7 +40,7 @@ def parse_args():
 
     args = parser.parse_args()
     if args.cpu:
-        args.device =torch.device('cpu')
+        args.device = torch.device('cpu')
     else:
         args.device = torch.device(f'cuda:{args.gpu}')
 

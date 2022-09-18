@@ -31,63 +31,72 @@ class ZoomIn(BaseTransform):
     def transform(self, image_nd, clicks_lists: List[List[Click]]):
         assert image_nd.shape[0] == 1 and len(clicks_lists) == 1
         self.image_changed = False
-
         clicks_list = clicks_lists[0]
+        print(f"len(clicks_list): {len(clicks_list)}")
+        print(f"self.skip_clicks: {self.skip_clicks}")
         if len(clicks_list) <= self.skip_clicks:
             return image_nd, clicks_lists
 
         self._input_image_shape = image_nd.shape
+        print("Here.")
+        if self._prev_probs is None and self.skip_clicks >= 0:
+            return image_nd, clicks_lists
 
-        current_object_roi = None
+        print("And here.")
         if self._prev_probs is not None:
             current_pred_mask = (self._prev_probs > self.prob_thresh)[0, 0]
-            if current_pred_mask.sum() > 0:
-                current_object_roi = get_object_roi(current_pred_mask, clicks_list,
-                                                    self.expansion_ratio, self.min_crop_size)
-        else:
-            print('None')
-
-        if current_object_roi is None:
-            if self.skip_clicks >= 0:
+            if current_pred_mask.sum() <= 0 and self.skip_clicks >= 0:
+                print("returning here.")
                 return image_nd, clicks_lists
-            else:
-                current_object_roi = 0, image_nd.shape[2] - 1, 0, image_nd.shape[3] - 1
 
-        # here
-        update_object_roi = True
+        print("Now here.")
+        click_y = clicks_list[-1].coords[0]
+        click_x = clicks_list[-1].coords[1]
+        print(f"image_nd.shape: {image_nd.shape}")
+        print(f"click_y: {click_y}, click_x: {click_x}")
+        print(f"self.target_size: {self.target_size}")
+        self._object_roi = get_object_roi(image_nd, click_y, click_x, self.target_size)
         if self._object_roi is None:
-            update_object_roi = True
-        elif not check_object_roi(self._object_roi, clicks_list):
-            update_object_roi = True
-        elif get_bbox_iou(current_object_roi, self._object_roi) < self.recompute_thresh_iou:
-            update_object_roi = True
+            print("1 - self._object_roi is None.")
+        else:
+            print("1 - self._object_roi is NOT None.")
+        self._roi_image = get_roi_image_nd(image_nd, self._object_roi)
 
-        if update_object_roi:
-            self._object_roi = current_object_roi
-            self.image_changed = True
-        self._roi_image = get_roi_image_nd(image_nd, self._object_roi, self.target_size)
-
+        self.image_changed = True
         tclicks_lists = [self._transform_clicks(clicks_list)]
+
+        if self._object_roi is None:
+            print("2 - self._object_roi is None.")
+        else:
+            print("2 - self._object_roi is NOT None.")
         return self._roi_image.to(image_nd.device), tclicks_lists
 
     def inv_transform(self, prob_map):
+        import random
+        ran_num = random.random()
         if self._object_roi is None:
+            print("self._object_roi is None.")
+            print(f"1 - ran_num: {ran_num}")
             self._prev_probs = prob_map.cpu().numpy()
             return prob_map
 
+        print(f"2 - ran_num: {ran_num}")
+
         assert prob_map.shape[0] == 1
         rmin, rmax, cmin, cmax = self._object_roi
-        prob_map = torch.nn.functional.interpolate(prob_map, size=(rmax - rmin + 1, cmax - cmin + 1),
+        print(f"rmin: {rmin}, rmax: {rmax}, cmin: {cmin}, cmax: {cmax}")
+        prob_map = torch.nn.functional.interpolate(prob_map, size=(rmax - rmin, cmax - cmin),
                                                    mode='bilinear', align_corners=True)
 
-       
-
         if self._prev_probs is not None:
-            new_prob_map = torch.zeros(*self._prev_probs.shape, device=prob_map.device, dtype=prob_map.dtype)
-            new_prob_map[:, :, rmin:rmax + 1, cmin:cmax + 1] = prob_map
-            #new_prob_map[:, :, rmin:rmax, cmin:cmax] = prob_map
+            # Create new prob map by combining previous and current
+            new_prob_map = torch.from_numpy(self._prev_probs).to(prob_map.device)
+            new_prob_map[:, :, rmin:rmax, cmin:cmax] = prob_map
         else:
-            new_prob_map = prob_map
+            new_prob_map = torch.zeros(1, 1, *self._input_image_shape[2:],
+                                        device=prob_map.device, dtype=prob_map.dtype)
+            # Create new prob map and set everything outside the roi to 0
+            new_prob_map[:, :, rmin:rmax, cmin:cmax] = prob_map
 
         self._prev_probs = new_prob_map.cpu().numpy()
 
@@ -135,38 +144,11 @@ class ZoomIn(BaseTransform):
         return transformed_clicks
 
 
-def get_object_roi(pred_mask, clicks_list, expansion_ratio, min_crop_size):
-    pred_mask = pred_mask.copy()
-
-    for click in clicks_list:
-        if click.is_positive:
-            pred_mask[int(click.coords[0]), int(click.coords[1])] = 1
-
-    bbox = get_bbox_from_mask(pred_mask)
-    bbox = expand_bbox(bbox, expansion_ratio, min_crop_size)
-    h, w = pred_mask.shape[0], pred_mask.shape[1]
-    bbox = clamp_bbox(bbox, 0, h - 1, 0, w - 1)
-
-    return bbox
-
-
-def get_roi_image_nd(image_nd, object_roi, target_size):
+def get_roi_image_nd(image_nd, object_roi):
     rmin, rmax, cmin, cmax = object_roi
 
-    height = rmax - rmin + 1
-    width = cmax - cmin + 1
-
-    if isinstance(target_size, tuple):
-        new_height, new_width = target_size
-    else:
-        scale = target_size / max(height, width)
-        new_height = int(round(height * scale))
-        new_width = int(round(width * scale))
-
     with torch.no_grad():
-        roi_image_nd = image_nd[:, :, rmin:rmax + 1, cmin:cmax + 1]
-        #roi_image_nd = torch.nn.functional.interpolate(roi_image_nd, size=(new_height, new_width),
-        #                                               mode='bilinear', align_corners=True)
+        roi_image_nd = image_nd[:, :, rmin:rmax, cmin:cmax]
 
     return roi_image_nd
 
@@ -180,3 +162,25 @@ def check_object_roi(object_roi, clicks_list):
                 return False
 
     return True
+
+
+def get_object_roi(image_nd, click_y, click_x, target_size):
+    img_h = image_nd.shape[2]
+    img_w = image_nd.shape[3]
+    crop_h = target_size[0]
+    crop_w = target_size[0]
+    crop_start_x = max(0, click_x - crop_w // 2)
+    crop_start_x = min(img_w - crop_w, crop_start_x)
+    crop_start_y = max(0, click_y - crop_h // 2)
+    crop_start_y = min(img_h - crop_h, crop_start_y)
+    crop_end_x = crop_start_x + crop_w
+    crop_end_y = crop_start_y + crop_h
+
+    #FOR DEBUGGING:
+    print(f"crop_start_x: {crop_start_x}")
+    print(f"crop_start_y: {crop_start_y}")
+    print(f"crop_end_x: {crop_end_x}")
+    print(f"crop_end_y: {crop_end_y}")
+
+    # Return roi coordinates
+    return (crop_start_y, crop_end_y, crop_start_x, crop_end_x)

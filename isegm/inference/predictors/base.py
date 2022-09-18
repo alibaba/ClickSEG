@@ -71,8 +71,6 @@ class BasePredictor(object):
         if hasattr(self.net, 'with_prev_mask') and self.net.with_prev_mask:
             input_image = torch.cat((input_image, prev_mask), dim=1)
 
-        
-
         image_nd, clicks_lists, is_image_changed = self.apply_transforms(
             input_image, [clicks_list]
         )
@@ -85,53 +83,37 @@ class BasePredictor(object):
         if roi is None:
             h,w = prev_mask.shape[-2],prev_mask.shape[-1]
             global_roi = (0,h,0,w)
-            
+
         else:
             y1,y2,x1,x2 = roi
             global_roi = (y1,y2+1,x1,x2+1)
-            
+
         self.global_roi = global_roi
-        
 
-
-        
         pred_logits, feature= self._get_prediction(image_nd, clicks_lists, is_image_changed)
         prediction = F.interpolate(pred_logits, mode='bilinear', align_corners=True,
                                    size=image_nd.size()[2:])
-                         
 
         for t in reversed(self.transforms):
-            #if not isinstance(t,SigmoidForPred):
             prediction = t.inv_transform(prediction)
-
-        #if self.zoom_in is not None and self.zoom_in.check_possible_recalculation():
-        #    return self.get_prediction(clicker)
-            
-
-
-        #self.prev_prediction = prediction
-        #return prediction.cpu().numpy()[0, 0]
-
 
         prediction  = torch.log( prediction/(1-prediction)  )
         coarse_mask = prediction#.cpu().numpy()[0, 0] > 0.49
         prev_mask = prev_mask#.cpu().numpy()[0, 0] > 0.49
         clicks_list = clicker.get_clicks()
         image_full = self.original_image
-        #print(coarse_mask.max(),coarse_mask.min() )
 
         coarse_mask_np = coarse_mask.cpu().numpy()[0, 0] 
         prev_mask_np = prev_mask.cpu().numpy()[0, 0] 
 
-        
         if len(clicks_list) > 10:
             progress_mode = True
         else:
             progress_mode = False
 
-        #y1,y2,x1,x2 = get_focus_bbox_all(coarse_mask_np,prev_mask_np, global_roi,last_y,last_x,1.4, progress_mode)
-        #y1,y2,x1,x2 = get_focus_bbox_pp(coarse_mask_np,prev_mask_np, global_roi,last_y,last_x, 1.4, 0)
         y1,y2,x1,x2 = get_focus_bbox_v5(coarse_mask_np,prev_mask_np, global_roi,last_y,last_x, 1.4, 0)
+
+        print(f"BBOX CORNERS: x1={x1}, y1={y1}, x2={x2}, y2={y2}")
 
         if progress_mode:
             coarse_mask = self.prev_prediction

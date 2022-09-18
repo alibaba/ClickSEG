@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
 from torchvision import transforms
-from isegm.inference.transforms import AddHorizontalFlip, SigmoidForPred, LimitLongestSide, ResizeTrans
+from isegm.inference.transforms import SigmoidForPred, LimitLongestSide, ResizeTrans
 
 
 class BaselinePredictor(object):
@@ -29,12 +29,13 @@ class BaselinePredictor(object):
 
         self.to_tensor = transforms.ToTensor()
 
-        self.transforms = [zoom_in] if zoom_in is not None else []
+        self.transforms = []
         if max_size is not None:
             self.transforms.append(LimitLongestSide(max_size=max_size))
         self.crop_l = infer_size
-        self.transforms.append(ResizeTrans(self.crop_l))
         self.transforms.append(SigmoidForPred())
+        if zoom_in:
+            self.transforms.append(zoom_in)
         self.focus_roi = None
         self.global_roi = None
         self.with_flip = True
@@ -71,23 +72,20 @@ class BaselinePredictor(object):
         if hasattr(self.net, 'with_prev_mask') and self.net.with_prev_mask:
             input_image = torch.cat((input_image, prev_mask), dim=1)
 
-        
-
         image_nd, clicks_lists, is_image_changed = self.apply_transforms(
             input_image, [clicks_list]
         )
-        
+
         pred_logits = self._get_prediction(image_nd, clicks_lists, is_image_changed)
         prediction = F.interpolate(pred_logits, mode='bilinear', align_corners=True,
                                    size=image_nd.size()[2:])
-                         
+
         for t in reversed(self.transforms):
-            #if not isinstance(t,SigmoidForPred):
             prediction = t.inv_transform(prediction)
 
         #if self.zoom_in is not None and self.zoom_in.check_possible_recalculation():
         #    return self.get_prediction(clicker)
-            
+
         self.prev_prediction = prediction
         return prediction.cpu().numpy()[0, 0]
 
@@ -95,7 +93,7 @@ class BaselinePredictor(object):
         points_nd = self.get_points_nd(clicks_lists)
         output =  self.net(image_nd, points_nd)
         return output['instances']
-    
+
     def _get_refine(self, coarse_mask, image, clicks, feature, focus_roi, focus_roi_in_global_roi):
         y1,y2,x1,x2 = focus_roi
         image_focus = image[:,:,y1:y2,x1:x2]
@@ -153,7 +151,7 @@ class BaselinePredictor(object):
 
 
 
-        
+
 
     def _get_transform_states(self):
         return [x.get_state() for x in self.transforms]

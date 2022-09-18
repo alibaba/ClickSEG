@@ -51,8 +51,8 @@ class InteractiveDemoApp(ttk.Frame):
                 'use_zoom_in': tk.BooleanVar(value=True),
                 'fixed_crop': tk.BooleanVar(value=True),
                 'skip_clicks': tk.IntVar(value=-1),
-                'target_size': tk.IntVar(value=min(400, self.limit_longest_size)),
-                'expansion_ratio': tk.DoubleVar(value=1.4)
+                'target_size': tk.IntVar(value=min(256, self.limit_longest_size)),
+                'expansion_ratio': tk.DoubleVar(value=1.0)
             },
 
             'predictor_params': {
@@ -181,7 +181,7 @@ class InteractiveDemoApp(ttk.Frame):
             ], title="Chose an image")
 
             if len(filename) > 0:
-                image = cv2.cvtColor(cv2.imread(filename), cv2.COLOR_BGR2RGB)
+                image = cv2.cvtColor(cv2.imread(filename, 0), cv2.COLOR_GRAY2RGB)
                 self.controller.set_image(image)
                 self.save_mask_btn.configure(state=tk.NORMAL)
                 self.load_mask_btn.configure(state=tk.NORMAL)
@@ -307,6 +307,7 @@ class InteractiveDemoApp(ttk.Frame):
             return
 
         if self._check_entry(self):
+            print("HERE.")
             self.controller.add_click(x, y, is_positive)
 
     def _update_image(self, reset_canvas=False):
