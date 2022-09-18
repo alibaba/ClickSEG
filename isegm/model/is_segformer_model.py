@@ -3,11 +3,10 @@ import torch
 import torch.nn.functional as F
 from isegm.utils.serialization import serialize
 from .is_model import ISModel
-from isegm.model.ops import DistMaps, ScaleLayer, BatchImageNormalize
-from .modeling.hrnet_ocr import HighResolutionNet
+from isegm.model.ops import DistMaps, ScaleLayer
 from isegm.model.modifiers import LRMult
 from .modeling.segformer.segformer_model import SegFormer
-from mmcv.cnn import ConvModule, DepthwiseSeparableConvModule
+from mmcv.cnn import ConvModule
 import torchvision.ops.roi_align as roi_align
 from isegm.model.ops import DistMaps
 

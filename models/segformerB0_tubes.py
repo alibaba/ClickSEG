@@ -1,7 +1,6 @@
 from isegm.utils.exp_imports.default import *
 MODEL_NAME = 'segformerB0_tubes'
 from isegm.data.datasets.tubes import TubesDataset
-from isegm.data.compose import ComposeDataset,ProportionalComposeDataset
 from isegm.engine.focalclick_trainer import ISTrainer
 import torch.nn as nn
 
@@ -65,8 +64,8 @@ def train(model, cfg, model_cfg):
         dataset_path=cfg.dataset_path,
         split='train',
         augmentator=train_augmentator,
-        min_object_area=150,
-        keep_background_prob=0.05,
+        min_object_area=200,
+        keep_background_prob=0.5,
         points_sampler=points_sampler,
         epoch_len=5000,
     )
@@ -75,9 +74,9 @@ def train(model, cfg, model_cfg):
         cfg.dataset_path,
         split='val',
         augmentator=val_augmentator,
-        min_object_area=150,
+        min_object_area=200,
         points_sampler=points_sampler,
-        epoch_len=400
+        epoch_len=1000
     )
 
     optimizer_params = {
