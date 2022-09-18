@@ -49,7 +49,7 @@ class ISDataset(torch.utils.data.dataset.Dataset):
                 self.points_sampler.sample_object(sample)
                 points = np.array(self.points_sampler.sample_points())
                 mask = self.points_sampler.selected_mask
-                mask = self.remove_small_regions(mask)            
+                mask = self.remove_small_regions(mask)
                 image = sample.image
                 mask_area = mask[0].shape[0] * mask[0].shape[1]
 
