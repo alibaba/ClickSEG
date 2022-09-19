@@ -80,11 +80,6 @@ class ISModel(nn.Module):
         print('Unexpected Keys: ', unexpected_keys)
         state_dict.update(pretrained_state_dict)
         self.load_state_dict(state_dict, strict= False)
-        '''
-        if self.inference_mode:
-            for param in self.backbone.parameters():
-                param.requires_grad = False
-        '''
 
 
 def split_points_by_order(tpoints: torch.Tensor, groups):

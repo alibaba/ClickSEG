@@ -113,8 +113,6 @@ class BasePredictor(object):
 
         y1,y2,x1,x2 = get_focus_bbox_v5(coarse_mask_np,prev_mask_np, global_roi,last_y,last_x, 1.4, 0)
 
-        print(f"BBOX CORNERS: x1={x1}, y1={y1}, x2={x2}, y2={y2}")
-
         if progress_mode:
             coarse_mask = self.prev_prediction
             coarse_mask  = torch.log( coarse_mask/(1-coarse_mask)  )
@@ -127,19 +125,17 @@ class BasePredictor(object):
         
         coarse_mask[:,:,y1:y2,x1:x2] =  focus_pred
         coarse_mask = torch.sigmoid(coarse_mask)
-        
+
 
         self.prev_prediction = coarse_mask
-        #print(111,self.transforms[0]._prev_probs.sum())
         self.transforms[0]._prev_probs = coarse_mask.cpu().numpy()
-        #print(222,self.transforms[0]._prev_probs.sum())
         return coarse_mask.cpu().numpy()[0, 0]
 
     def _get_prediction(self, image_nd, clicks_lists, is_image_changed):
         points_nd = self.get_points_nd(clicks_lists)
         output =  self.net(image_nd, points_nd)
         return output['instances'], output['feature']
-    
+
     def _get_refine(self, coarse_mask, image, clicks, feature, focus_roi, focus_roi_in_global_roi):
         y1,y2,x1,x2 = focus_roi
         image_focus = image[:,:,y1:y2,x1:x2]

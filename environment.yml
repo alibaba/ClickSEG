@@ -1,0 +1,24 @@
+name: interactive-segmentation
+channels:
+  - defaults
+  - conda-forge
+  - esri
+  - fastai
+dependencies:
+  - albumentations
+  - cudatoolkit
+  - easydict
+  - ipython
+  - mmcv-full
+  - nvidia-ml-py3
+  - pillow
+  - pip
+  - pytorch-gpu
+  - pyyaml
+  - tensorboard
+  - termcolor
+  - timm
+  - pip:
+    - thop
+
+prefix: /home/bean/miniconda3/envs/interactive-segmentation

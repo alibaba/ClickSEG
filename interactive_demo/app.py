@@ -307,7 +307,6 @@ class InteractiveDemoApp(ttk.Frame):
             return
 
         if self._check_entry(self):
-            print("HERE.")
             self.controller.add_click(x, y, is_positive)
 
     def _update_image(self, reset_canvas=False):

@@ -32,59 +32,35 @@ class ZoomIn(BaseTransform):
         assert image_nd.shape[0] == 1 and len(clicks_lists) == 1
         self.image_changed = False
         clicks_list = clicks_lists[0]
-        print(f"len(clicks_list): {len(clicks_list)}")
-        print(f"self.skip_clicks: {self.skip_clicks}")
         if len(clicks_list) <= self.skip_clicks:
             return image_nd, clicks_lists
 
         self._input_image_shape = image_nd.shape
-        print("Here.")
         if self._prev_probs is None and self.skip_clicks >= 0:
             return image_nd, clicks_lists
 
-        print("And here.")
         if self._prev_probs is not None:
             current_pred_mask = (self._prev_probs > self.prob_thresh)[0, 0]
             if current_pred_mask.sum() <= 0 and self.skip_clicks >= 0:
-                print("returning here.")
                 return image_nd, clicks_lists
 
-        print("Now here.")
         click_y = clicks_list[-1].coords[0]
         click_x = clicks_list[-1].coords[1]
-        print(f"image_nd.shape: {image_nd.shape}")
-        print(f"click_y: {click_y}, click_x: {click_x}")
-        print(f"self.target_size: {self.target_size}")
         self._object_roi = get_object_roi(image_nd, click_y, click_x, self.target_size)
-        if self._object_roi is None:
-            print("1 - self._object_roi is None.")
-        else:
-            print("1 - self._object_roi is NOT None.")
         self._roi_image = get_roi_image_nd(image_nd, self._object_roi)
 
         self.image_changed = True
         tclicks_lists = [self._transform_clicks(clicks_list)]
 
-        if self._object_roi is None:
-            print("2 - self._object_roi is None.")
-        else:
-            print("2 - self._object_roi is NOT None.")
         return self._roi_image.to(image_nd.device), tclicks_lists
 
     def inv_transform(self, prob_map):
-        import random
-        ran_num = random.random()
         if self._object_roi is None:
-            print("self._object_roi is None.")
-            print(f"1 - ran_num: {ran_num}")
             self._prev_probs = prob_map.cpu().numpy()
             return prob_map
 
-        print(f"2 - ran_num: {ran_num}")
-
         assert prob_map.shape[0] == 1
         rmin, rmax, cmin, cmax = self._object_roi
-        print(f"rmin: {rmin}, rmax: {rmax}, cmin: {cmin}, cmax: {cmax}")
         prob_map = torch.nn.functional.interpolate(prob_map, size=(rmax - rmin, cmax - cmin),
                                                    mode='bilinear', align_corners=True)
 
@@ -175,12 +151,6 @@ def get_object_roi(image_nd, click_y, click_x, target_size):
     crop_start_y = min(img_h - crop_h, crop_start_y)
     crop_end_x = crop_start_x + crop_w
     crop_end_y = crop_start_y + crop_h
-
-    #FOR DEBUGGING:
-    print(f"crop_start_x: {crop_start_x}")
-    print(f"crop_start_y: {crop_start_y}")
-    print(f"crop_end_x: {crop_end_x}")
-    print(f"crop_end_y: {crop_end_y}")
 
     # Return roi coordinates
     return (crop_start_y, crop_end_y, crop_start_x, crop_end_x)
