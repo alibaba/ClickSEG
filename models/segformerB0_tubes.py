@@ -65,7 +65,7 @@ def train(model, cfg, model_cfg):
         split='train',
         augmentator=train_augmentator,
         min_object_area=200,
-        keep_background_prob=0.5,
+        keep_background_prob=0.0,
         points_sampler=points_sampler,
         epoch_len=5000,
     )
