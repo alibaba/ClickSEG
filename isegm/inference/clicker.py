@@ -57,6 +57,7 @@ class Clicker(object):
 
     def add_click(self, click):
         coords = click.coords
+        print(f"coords: {coords}")
 
         click.indx = self.click_indx_offset + self.num_pos_clicks + self.num_neg_clicks
         if click.is_positive:

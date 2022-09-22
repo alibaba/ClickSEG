@@ -4,6 +4,7 @@ channels:
   - conda-forge
   - esri
   - fastai
+  - pytorch
 dependencies:
   - albumentations
   - cudatoolkit
@@ -13,11 +14,13 @@ dependencies:
   - nvidia-ml-py3
   - pillow
   - pip
-  - pytorch-gpu
+  - pytorch
+  - torchvision
   - pyyaml
   - tensorboard
   - termcolor
   - timm
+  - pyyaml
   - pip:
     - thop
 

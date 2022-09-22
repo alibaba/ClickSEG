@@ -66,28 +66,35 @@ class CanvasImage:
         self.canvas.configure(xscrollcommand=self.hbar.set, yscrollcommand=self.vbar.set)
         self.hbar.configure(command=self.__scroll_x)  # bind scrollbars to the canvas
         self.vbar.configure(command=self.__scroll_y)
+        self.callback_counter = 0
         # Bind events to the Canvas
         self.canvas.bind('<Configure>', lambda event: self.__size_changed())  # canvas is resized
-        self.canvas.bind('<Button-1>', self.__left_mouse_button)  # remember canvas position
+        self.canvas.bind('<ButtonPress-1>', self.__left_mouse_button_pressed)  # remember canvas position
+        self.canvas.bind('<B1-Motion>', self.__left_mouse_button_motion) # activate brush tool if left button pressed and held
         self.canvas.bind('<ButtonPress-3>', self.__right_mouse_button_pressed)  # remember canvas position
         self.canvas.bind('<ButtonPress-2>', self.__right_mouse_button_pressed)  # remember canvas position (MacOS)
         self.canvas.bind('<ButtonRelease-3>', self.__right_mouse_button_released)  # remember canvas position
         self.canvas.bind('<ButtonRelease-2>', self.__right_mouse_button_released)  # remember canvas position (MacOS)
+        self.canvas.bind('<ButtonRelease-1>', self.__left_mouse_button_released)  # 
         self.canvas.bind('<B3-Motion>', self.__right_mouse_button_motion)  # move canvas to the new position
         self.canvas.bind('<B2-Motion>', self.__right_mouse_button_motion)  # move canvas to the new position
         self.canvas.bind('<MouseWheel>', self.__wheel)  # zoom for Windows and MacOS, but not Linux
         self.canvas.bind('<Button-5>', self.__wheel)  # zoom for Linux, wheel scroll down
         self.canvas.bind('<Button-4>', self.__wheel)  # zoom for Linux, wheel scroll up
-        
+
         # Handle keystrokes in idle mode, because program slows down on a weak computers,
         # when too many key stroke events in the same time
         self.canvas.bind('<Key>', lambda event: self.canvas.after_idle(self.__keystroke, event))
         self.container = None
 
         self._click_callback = None
+        self._brush_callback = None
 
     def register_click_callback(self,  click_callback):
         self._click_callback = click_callback
+
+    def register_brush_callback(self,  brush_callback):
+        self._brush_callback = brush_callback
 
     def reload_image(self, image, reset_canvas=True):
         self.__original_image = image.copy()
@@ -243,12 +250,24 @@ class CanvasImage:
 
         self._change_canvas_scale(scale, x, y)
         self.__show_image()
-    
-    def __left_mouse_button(self, event):
+
+    def __left_mouse_button_pressed(self, event):
+        """ Remember previous coordinates for scrolling with the mouse """
+        self._last_rb_click_time = time.time()
+        self._last_rb_click_event = event
+        self.canvas.scan_mark(event.x, event.y)
+
+    def __left_mouse_button_released(self, event):
+        time_delta = time.time() - self._last_rb_click_time 
+        move_delta = math.sqrt((event.x - self._last_rb_click_event.x) ** 2 +
+                               (event.y - self._last_rb_click_event.y) ** 2)
+        if time_delta > 0.5 or move_delta > 3:
+            return
+
         if self._click_callback is None:
             return
 
-        coords = self._get_click_coordinates(event)
+        coords = self._get_click_coordinates(self._last_rb_click_event)
 
         if coords is not None:
             self._click_callback(is_positive=True, x=coords[0], y=coords[1])
@@ -281,6 +300,24 @@ class CanvasImage:
         if move_delta > 3:
             self.canvas.scan_dragto(event.x, event.y, gain=1)
             self.__show_image()  # zoom tile and show it on the canvas
+
+    def __left_mouse_button_motion(self, event):
+        # Make a selection with the brush
+        if self._brush_callback is None:
+            return
+
+        move_delta = math.sqrt((event.x - self._last_rb_click_event.x) ** 2 +
+                               (event.y - self._last_rb_click_event.y) ** 2)
+        if not move_delta > 3:
+            return
+
+        coords = self._get_click_coordinates(event)
+
+        if coords is not None:
+            self.__brush_tool(coords)
+
+    def __brush_tool(self, coords):
+        self._brush_callback(is_positive=True, x=coords[0], y=coords[1])  
 
     def outside(self, x, y):
         """ Checks if the point (x,y) is outside the image area """

@@ -40,6 +40,8 @@ class BasePredictor(object):
         if self.with_flip:
             self.transforms.append(AddHorizontalFlip())
 
+
+
     def set_input_image(self, image):
         image_nd = self.to_tensor(image)
         for transform in self.transforms:

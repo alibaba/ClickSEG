@@ -110,6 +110,7 @@ class InteractiveDemoApp(ttk.Frame):
         self.undo_click_button = \
             FocusButton(self.clicks_options_frame, text='Undo click', bg='#ffe599', fg='black', width=10, height=2,
                         state=tk.DISABLED, command=self.controller.undo_click)
+        
         self.undo_click_button.pack(side=tk.LEFT, fill=tk.X, padx=10, pady=3)
         self.reset_clicks_button = \
             FocusButton(self.clicks_options_frame, text='Reset clicks', bg='#ea9999', fg='black', width=10, height=2,
@@ -300,6 +301,8 @@ class InteractiveDemoApp(ttk.Frame):
         self.controller.reset_predictor(predictor_params)
 
     def _click_callback(self, is_positive, x, y):
+        print(f"in _click_callback - x: {x}")
+        print(f"in _click_callback - y: {y}")
         self.canvas.focus_set()
 
         if self.image_on_canvas is None:
@@ -308,6 +311,15 @@ class InteractiveDemoApp(ttk.Frame):
 
         if self._check_entry(self):
             self.controller.add_click(x, y, is_positive)
+    
+    def __brush_callback(self, is_positive, x, y):
+        self.canvas.focus_set()
+        if self.image_on_canvas is None:
+            messagebox.showwarning("Warning", "Please load an image first")
+            return
+
+        if self._check_entry(self):
+            self.controller.draw_brush(x, y, is_positive)
 
     def _update_image(self, reset_canvas=False):
         image = self.controller.get_visualization(alpha_blend=self.state['alpha_blend'].get(),
@@ -315,6 +327,7 @@ class InteractiveDemoApp(ttk.Frame):
         if self.image_on_canvas is None:
             self.image_on_canvas = CanvasImage(self.canvas_frame, self.canvas)
             self.image_on_canvas.register_click_callback(self._click_callback)
+            self.image_on_canvas.register_brush_callback(self.__brush_callback)
 
         self._set_click_dependent_widgets_state()
         if image is not None:

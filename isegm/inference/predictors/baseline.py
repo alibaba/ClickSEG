@@ -1,8 +1,11 @@
 import torch
 import torch.nn.functional as F
 from torchvision import transforms
-from isegm.inference.transforms import SigmoidForPred, LimitLongestSide, ResizeTrans
+import math
 
+import cv2
+
+from isegm.inference.transforms import SigmoidForPred, LimitLongestSide, ResizeTrans
 
 class BaselinePredictor(object):
     def __init__(self, model, device,
@@ -54,6 +57,8 @@ class BaselinePredictor(object):
         self.prev_prediction = torch.from_numpy(mask).unsqueeze(0).unsqueeze(0).to(self.device).float()
 
     def get_prediction(self, clicker, prev_mask=None):
+        self.prev_prediction[0][0][1][7] = 0.123456
+        print(self.prev_prediction[0][0][1][7])
         clicks_list = clicker.get_clicks()
         click = clicks_list[-1]
         last_y,last_x = click.coords[0],click.coords[1]
@@ -88,6 +93,13 @@ class BaselinePredictor(object):
 
         self.prev_prediction = prediction
         return prediction.cpu().numpy()[0, 0]
+
+    def update_prediction(self, prediction_x, prediction_y, radius, new_probability):
+        # Update circle around value
+        np_arr = self.prev_prediction.cpu().detach().numpy().squeeze()
+        np_arr = cv2.circle(np_arr, (prediction_x, prediction_y), radius, new_probability, -1)
+        self.prev_prediction = torch.from_numpy(np_arr).unsqueeze(0).unsqueeze(0).to(self.device).float()
+        return self.prev_prediction.cpu().numpy()[0, 0]
 
     def _get_prediction(self, image_nd, clicks_lists, is_image_changed):
         points_nd = self.get_points_nd(clicks_lists)

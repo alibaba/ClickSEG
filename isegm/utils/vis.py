@@ -105,31 +105,42 @@ def get_boundaries(instances_masks, boundaries_width=1):
         obj_boundary = np.logical_xor(obj_mask, np.logical_and(inner_mask, obj_mask))
         boundaries = np.logical_or(boundaries, obj_boundary)
     return boundaries
-    
- 
+
+
 def draw_with_blend_and_clicks(img, mask=None, alpha=0.6, clicks_list=None, pos_color=(0, 255, 0),
-                               neg_color=(255, 0, 0), radius=4):
-    result = img.copy()
+                               neg_color=(255, 0, 0), radius=4, is_brush_update=False, canvas_img=None,
+                               brush_coords=None, brush_radius=None):
+    if not is_brush_update:
+        result = img.copy()
+    else:
+        result = canvas_img.copy()
 
     if mask is not None:
         palette = get_palette(np.max(mask) + 1)
         rgb_mask = palette[mask.astype(np.uint8)]
 
+        #if not is_brush_update:
         mask_region = (mask > 0).astype(np.uint8)
         result = result * (1 - mask_region[:, :, np.newaxis]) + \
             (1 - alpha) * mask_region[:, :, np.newaxis] * result + \
             alpha * rgb_mask
+        #else:
+            #mask_region = #cv2.circle()
+            #result = result * 
+
         result = result.astype(np.uint8)
 
         # result = (result * (1 - alpha) + alpha * rgb_mask).astype(np.uint8)
-
+    #if not is_brush_update and clicks_list is not None and len(clicks_list) > 0:
     if clicks_list is not None and len(clicks_list) > 0:
         pos_points = [click.coords for click in clicks_list if click.is_positive]
         neg_points = [click.coords for click in clicks_list if not click.is_positive]
 
         result = draw_points(result, pos_points, pos_color, radius=radius)
         result = draw_points(result, neg_points, neg_color, radius=radius)
-
+    
+    if is_brush_update:
+        result = draw_points(result, [brush_coords], pos_color, brush_radius)
     return result
 
 

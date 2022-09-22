@@ -66,6 +66,26 @@ class InteractiveController:
 
         self.update_image_callback()
 
+    def draw_brush(self, x, y, is_positive):
+        self.states.append({
+            'clicker': self.clicker.get_state(),
+            'predictor': self.predictor.get_states()
+        })
+        new_p = 1 if is_positive else 0
+        pred = self.predictor.update_prediction(x, y, 20, new_p)
+
+        torch.cuda.empty_cache()
+
+        if self.probs_history:
+            self.probs_history.append((self.probs_history[-1][0], pred))
+        else:
+            self.probs_history.append((np.zeros_like(pred), pred))
+
+        self.update_image_callback()
+
+    def update_baseline_controller(self):
+        self.predictor.update_prediction()
+
     def undo_click(self):
         if not self.states:
             return
