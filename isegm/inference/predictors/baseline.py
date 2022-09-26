@@ -4,6 +4,7 @@ from torchvision import transforms
 import math
 
 import cv2
+import numpy as np
 
 from isegm.inference.transforms import SigmoidForPred, LimitLongestSide, ResizeTrans
 
@@ -57,8 +58,6 @@ class BaselinePredictor(object):
         self.prev_prediction = torch.from_numpy(mask).unsqueeze(0).unsqueeze(0).to(self.device).float()
 
     def get_prediction(self, clicker, prev_mask=None):
-        self.prev_prediction[0][0][1][7] = 0.123456
-        print(self.prev_prediction[0][0][1][7])
         clicks_list = clicker.get_clicks()
         click = clicks_list[-1]
         last_y,last_x = click.coords[0],click.coords[1]
@@ -94,11 +93,30 @@ class BaselinePredictor(object):
         self.prev_prediction = prediction
         return prediction.cpu().numpy()[0, 0]
 
-    def update_prediction(self, prediction_x, prediction_y, radius, new_probability):
-        # Update circle around value
-        np_arr = self.prev_prediction.cpu().detach().numpy().squeeze()
-        np_arr = cv2.circle(np_arr, (prediction_x, prediction_y), radius, new_probability, -1)
-        self.prev_prediction = torch.from_numpy(np_arr).unsqueeze(0).unsqueeze(0).to(self.device).float()
+    def update_prediction(self, points, radius, probability):
+        """Update prediction mask with filled in circles at given points."""
+        pred = self.prev_prediction.cpu().detach().numpy().squeeze()
+        pred_h, pred_w = pred.shape
+
+        print(f"New points along brush stroke: {points}")
+
+        # Add padding when circle is partially outside of image
+        min_x, max_x = np.min(points[:, 0]), np.max(points[:, 0])
+        min_y, max_y = np.min(points[:, 1]), np.max(points[:, 1])
+
+        top = max(0, radius - min_y)
+        bottom = max(0, max_y + radius + 1 - pred.shape[0])
+        left = max(0, radius - min_x)
+        right = max(0, max_x + radius + 1 - pred.shape[1])
+        pred = cv2.copyMakeBorder(pred, top, bottom, left, right, cv2.BORDER_CONSTANT, value=0)
+
+        for x, y in points:
+            cv2.circle(pred, (x + left, y + top), radius, probability, -1)
+
+        # Remove padding that may have been added
+        pred = pred[top:top+pred_h, left:left+pred_w]
+
+        self.prev_prediction = torch.from_numpy(pred).unsqueeze(0).unsqueeze(0).to(self.device).float()
         return self.prev_prediction.cpu().numpy()[0, 0]
 
     def _get_prediction(self, image_nd, clicks_lists, is_image_changed):
@@ -125,7 +143,6 @@ class BaselinePredictor(object):
         y1,y2,x1,x2 = focus_roi_in_global_roi
         roi = torch.tensor([0,x1, y1, x2, y2]).unsqueeze(0).float().to(image_focus.device)
 
-
         pred = self.net.refine(image_focus,points_nd, feature, mask_focus, roi) #['instances_refined'] 
         focus_coarse, focus_refined = pred['instances_coarse'] , pred['instances_refined'] 
         self.focus_coarse = torch.sigmoid(focus_coarse).cpu().numpy()[0, 0] * 255
@@ -138,32 +155,17 @@ class BaselinePredictor(object):
         yg1,yg2,xg1,xg2 = global_roi
         hg,wg = yg2-yg1, xg2-xg1
         yf1,yf2,xf1,xf2 = focus_roi
-        
-        '''
-        yf1_n = (yf1-yg1+1) * (self.crop_l/hg)
-        yf2_n = (yf2-yg1+1) * (self.crop_l/hg)
-        xf1_n = (xf1-xg1+1) * (self.crop_l/wg)
-        xf2_n = (xf2-xg1+1) * (self.crop_l/wg)
 
-        '''
         yf1_n = (yf1-yg1) * (self.crop_l/hg)
         yf2_n = (yf2-yg1) * (self.crop_l/hg)
         xf1_n = (xf1-xg1) * (self.crop_l/wg)
         xf2_n = (xf2-xg1) * (self.crop_l/wg)
-       
-        
-        
 
         yf1_n = max(yf1_n,0)
         yf2_n = min(yf2_n,self.crop_l)
         xf1_n = max(xf1_n,0)
         xf2_n = min(xf2_n,self.crop_l)
         return (yf1_n,yf2_n,xf1_n,xf2_n)
-
-
-
-
-
 
     def _get_transform_states(self):
         return [x.get_state() for x in self.transforms]
@@ -222,14 +224,14 @@ class BaselinePredictor(object):
         total_clicks.append(pos_clicks + neg_clicks)
         return torch.tensor(total_clicks, device=self.device)
 
-
-        
-
     def get_states(self):
         return {
             'transform_states': self._get_transform_states(),
             'prev_prediction': self.prev_prediction.clone()
         }
+
+    def get_current_prediction(self):
+        return self.prev_prediction.cpu().numpy()[0, 0]
 
     def set_states(self, states):
         self._set_transform_states(states['transform_states'])

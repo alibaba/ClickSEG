@@ -51,7 +51,7 @@ def visualize_proposals(proposals_info, point_color=(255, 0, 0), point_radius=1)
 
     proposal_map = draw_probmap(proposal_map)
     for x, y in candidates:
-        proposal_map = cv2.circle(proposal_map, (y, x), point_radius, point_color, -1)
+        cv2.circle(proposal_map, (y, x), point_radius, point_color, -1)
 
     return proposal_map
 
@@ -60,8 +60,9 @@ def draw_probmap(x):
     return cv2.applyColorMap((x * 255).astype(np.uint8), cv2.COLORMAP_HOT)
 
 
-def draw_points(image, points, color, radius=3):
-    image = image.copy()
+def draw_points(image, points, color, radius=3, inplace=False):
+    if not inplace:
+        image = image.copy()
     for p in points:
         if p[0] < 0:
             continue
@@ -69,7 +70,7 @@ def draw_points(image, points, color, radius=3):
             pradius = {0: 8, 1: 6, 2: 4}[p[2]] if p[2] < 3 else 2
         else:
             pradius = radius
-        image = cv2.circle(image, (int(p[1]), int(p[0])), pradius, color, -1)
+        cv2.circle(image, (int(p[1]), int(p[0])), pradius, color, -1)
 
     return image
 
@@ -107,40 +108,65 @@ def get_boundaries(instances_masks, boundaries_width=1):
     return boundaries
 
 
-def draw_with_blend_and_clicks(img, mask=None, alpha=0.6, clicks_list=None, pos_color=(0, 255, 0),
-                               neg_color=(255, 0, 0), radius=4, is_brush_update=False, canvas_img=None,
-                               brush_coords=None, brush_radius=None):
-    if not is_brush_update:
-        result = img.copy()
+def draw_with_blend_and_clicks(img, mask=None, alpha=0.6, clicks_list=None,
+                               pos_color=(0, 255, 0), neg_color=(255, 0, 0),
+                               radius=4, canvas_img=None, bound_area=None):
+
+    is_bound_update = canvas_img is not None and bound_area is not None
+    if is_bound_update:
+        print(f"bound_area: {bound_area}")
+        result = img[bound_area["y1"]:bound_area["y2"], bound_area["x1"]:bound_area["x2"]].copy()
+        if mask is not None:
+            mask = mask[bound_area["y1"]:bound_area["y2"], bound_area["x1"]:bound_area["x2"]]
     else:
-        result = canvas_img.copy()
+        result = img.copy()
 
     if mask is not None:
         palette = get_palette(np.max(mask) + 1)
         rgb_mask = palette[mask.astype(np.uint8)]
 
-        #if not is_brush_update:
         mask_region = (mask > 0).astype(np.uint8)
-        result = result * (1 - mask_region[:, :, np.newaxis]) + \
-            (1 - alpha) * mask_region[:, :, np.newaxis] * result + \
-            alpha * rgb_mask
-        #else:
-            #mask_region = #cv2.circle()
-            #result = result * 
+        result = (result * (1 - mask_region[:, :, np.newaxis])
+                  + (1 - alpha) * mask_region[:, :, np.newaxis] * result
+                  + alpha * rgb_mask)
 
         result = result.astype(np.uint8)
 
-        # result = (result * (1 - alpha) + alpha * rgb_mask).astype(np.uint8)
-    #if not is_brush_update and clicks_list is not None and len(clicks_list) > 0:
-    if clicks_list is not None and len(clicks_list) > 0:
-        pos_points = [click.coords for click in clicks_list if click.is_positive]
-        neg_points = [click.coords for click in clicks_list if not click.is_positive]
+    def get_relative_click_coords(coords):
+        if not is_bound_update:
+            return coords
+        return (coords[0] - bound_area["y1"], coords[1] - bound_area["x1"])
 
-        result = draw_points(result, pos_points, pos_color, radius=radius)
-        result = draw_points(result, neg_points, neg_color, radius=radius)
-    
-    if is_brush_update:
-        result = draw_points(result, [brush_coords], pos_color, brush_radius)
+    def is_in_bound(coords):
+        if not is_bound_update:
+            return True
+        return (bound_area["y1"] <= coords[0] < bound_area["y2"]
+                and bound_area["x1"] <= coords[1] < bound_area["x2"])
+
+    #import os
+    def save_result(num, result):
+        fnames = [f"result{num}_{i}.png" for i in range(20)]
+        for fname in fnames:
+            if os.path.isfile(fname):
+                continue
+            cv2.imwrite(fname, result)
+            break
+
+    #save_result(1, result)
+
+    if clicks_list is not None and len(clicks_list) > 0:
+        pos_points = [get_relative_click_coords(click.coords) for click in clicks_list
+                      if click.is_positive and is_in_bound(click.coords)]
+        neg_points = [get_relative_click_coords(click.coords) for click in clicks_list
+                      if not click.is_positive and is_in_bound(click.coords)]
+
+        result = draw_points(result, pos_points, pos_color, radius=radius, inplace=True)
+        result = draw_points(result, neg_points, neg_color, radius=radius, inplace=True)
+        #save_result(2, result)
+    if is_bound_update:
+        canvas_img[bound_area["y1"]:bound_area["y2"], bound_area["x1"]:bound_area["x2"]] = result
+        result = canvas_img
+
     return result
 
 
@@ -151,5 +177,3 @@ def add_tag(image, tag = 'nodefined', tag_h = 40):
     cv2.putText(tag_blanc,tag,(10,30),cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 0, 0 ), 1)
     image = cv2.vconcat([image,tag_blanc])
     return image
-
-

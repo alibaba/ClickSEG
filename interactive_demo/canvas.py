@@ -9,7 +9,6 @@ import tkinter as tk
 from tkinter import ttk
 from PIL import Image, ImageTk
 
-
 def handle_exception(exit_code=0):
     """ Use: @land.logger.handle_exception(0)
         before every function which could cast an exception """
@@ -89,16 +88,28 @@ class CanvasImage:
 
         self._click_callback = None
         self._brush_callback = None
+        self._end_brush_stroke_callback = None
+
+        self.__original_image_ndarray = None
+        self.__original_image = None
+        self.__current_image = None
 
     def register_click_callback(self,  click_callback):
         self._click_callback = click_callback
 
     def register_brush_callback(self,  brush_callback):
         self._brush_callback = brush_callback
+    
+    def register_end_brush_stroke_callback(self,  end_brush_stroke_callback):
+        self._end_brush_stroke_callback = end_brush_stroke_callback
+
+    def get_original_canvas_image(self):
+        return self.__original_image_ndarray
 
     def reload_image(self, image, reset_canvas=True):
-        self.__original_image = image.copy()
-        self.__current_image = image.copy()
+        self.__original_image_ndarray = image
+        self.__original_image = Image.fromarray(image)
+        self.__current_image = Image.fromarray(image)
 
         if reset_canvas:
             self.imwidth, self.imheight = self.__original_image.size
@@ -261,6 +272,7 @@ class CanvasImage:
         time_delta = time.time() - self._last_rb_click_time 
         move_delta = math.sqrt((event.x - self._last_rb_click_event.x) ** 2 +
                                (event.y - self._last_rb_click_event.y) ** 2)
+        self._end_brush_stroke_callback()
         if time_delta > 0.5 or move_delta > 3:
             return
 
