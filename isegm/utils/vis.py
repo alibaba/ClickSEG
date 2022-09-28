@@ -114,7 +114,7 @@ def draw_with_blend_and_clicks(img, mask=None, alpha=0.6, clicks_list=None,
 
     is_bound_update = canvas_img is not None and bound_area is not None
     if is_bound_update:
-        print(f"bound_area: {bound_area}")
+        #print(f"bound_area: {bound_area}")
         result = img[bound_area["y1"]:bound_area["y2"], bound_area["x1"]:bound_area["x2"]].copy()
         if mask is not None:
             mask = mask[bound_area["y1"]:bound_area["y2"], bound_area["x1"]:bound_area["x2"]]
@@ -143,17 +143,6 @@ def draw_with_blend_and_clicks(img, mask=None, alpha=0.6, clicks_list=None,
         return (bound_area["y1"] <= coords[0] < bound_area["y2"]
                 and bound_area["x1"] <= coords[1] < bound_area["x2"])
 
-    #import os
-    def save_result(num, result):
-        fnames = [f"result{num}_{i}.png" for i in range(20)]
-        for fname in fnames:
-            if os.path.isfile(fname):
-                continue
-            cv2.imwrite(fname, result)
-            break
-
-    #save_result(1, result)
-
     if clicks_list is not None and len(clicks_list) > 0:
         pos_points = [get_relative_click_coords(click.coords) for click in clicks_list
                       if click.is_positive and is_in_bound(click.coords)]
@@ -162,7 +151,7 @@ def draw_with_blend_and_clicks(img, mask=None, alpha=0.6, clicks_list=None,
 
         result = draw_points(result, pos_points, pos_color, radius=radius, inplace=True)
         result = draw_points(result, neg_points, neg_color, radius=radius, inplace=True)
-        #save_result(2, result)
+
     if is_bound_update:
         canvas_img[bound_area["y1"]:bound_area["y2"], bound_area["x1"]:bound_area["x2"]] = result
         result = canvas_img

@@ -72,23 +72,28 @@ class InteractiveController:
     def draw_brush(self, x, y, is_positive, radius=20):
         new_p = 1.0 if is_positive else 0.0
         if self.brush_stroke is None:
-            print(f"image shape: {self.image.shape}")
-            self.brush_stroke = Brushstroke((x, y), new_p, radius, self.image.shape[:2])
-        else:
-            self.brush_stroke.add_point((x, y))
+            self.brush_stroke = Brushstroke(new_p, radius, self.image.shape[:2])
 
+        self.brush_stroke.add_point((x, y))
         new_brush_points = self.brush_stroke.get_new_brush_points()
         if len(new_brush_points) == 0:
             return
 
-        min_x = max(0, np.min(new_brush_points[:, 0]) - radius)
-        max_x = min(self.image.shape[1], np.max(new_brush_points[:, 0]) + radius)
-        min_y = max(0, np.min(new_brush_points[:, 1]) - radius)
-        max_y = min(self.image.shape[0], np.max(new_brush_points[:, 1]) + radius)
+        bound_x_1 = max(0, np.min(new_brush_points[:, 0]) - radius)
+        bound_x_2 = min(self.image.shape[1], np.max(new_brush_points[:, 0]) + radius) + 1
+        bound_y_1 = max(0, np.min(new_brush_points[:, 1]) - radius)
+        bound_y_2 = min(self.image.shape[0], np.max(new_brush_points[:, 1]) + radius) + 1
 
-        bounded_update_area = dict(x1=min_x, x2=max_x+1, y1=min_y, y2=max_y+1)
+        bounded_update_area = dict(x1 = bound_x_1, x2 = bound_x_2, y1 = bound_y_1, y2 = bound_y_2)
 
-        self.predictor.update_prediction(new_brush_points, radius, new_p)
+        pred = self.predictor.update_prediction(new_brush_points, radius, new_p)
+
+        torch.cuda.empty_cache()
+
+        if self.probs_history:
+            self.probs_history.append((self.probs_history[-1][0], pred))
+        else:
+            self.probs_history.append((np.zeros_like(pred), pred))
 
         self.update_image_callback(bounded_update_area=bounded_update_area)
 

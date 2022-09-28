@@ -98,7 +98,7 @@ class BaselinePredictor(object):
         pred = self.prev_prediction.cpu().detach().numpy().squeeze()
         pred_h, pred_w = pred.shape
 
-        print(f"New points along brush stroke: {points}")
+        #print(f"New points along brush stroke: {points}")
 
         # Add padding when circle is partially outside of image
         min_x, max_x = np.min(points[:, 0]), np.max(points[:, 0])
